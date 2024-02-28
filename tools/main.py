@@ -33,6 +33,7 @@ def setup_parser():
         help='Password of the OBS websocket.',
         required=False
     )
+    return parser.parse_args()
 
 if __name__ == '__main__':
     args = setup_parser()

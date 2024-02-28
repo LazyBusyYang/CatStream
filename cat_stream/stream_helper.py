@@ -1,6 +1,6 @@
-from rtsp_reader import read_img_from_rtsp_cv2, read_img_from_rtsp_ffmpeg
-from detection import build_detection
-from obs_client import ObsClient
+from .rtsp_reader import read_img_from_rtsp_cv2, read_img_from_rtsp_ffmpeg
+from .detection import build_detection
+from .obs_client import ObsClient
 import logging
 from typing import Union
 import time
@@ -45,6 +45,8 @@ class StreamHelper:
             self.logger = logging.getLogger(__name__)
         elif isinstance(logger, str):
             self.logger = logging.getLogger(logger)
+        else:
+            self.logger = logger
         # init obs ws client
         self.obs_client = ObsClient(
             ws_url=obs_ws_url,
@@ -98,7 +100,7 @@ class StreamHelper:
                 detect_result = self.detection.detect(frame)
                 if self.detection.check_cat(detect_result):
                     cat_seen_scenes.append(scene_name)
-            if len(cat_seen_scenes) < 0:
+            if len(cat_seen_scenes) <= 0:
                 self.missing_count += 1
                 if self.missing_count >= self.missing_tolerance:
                     msg = f'Cat missing for {self.missing_count} times, switch to default scene {self.default_scene_name}.'
