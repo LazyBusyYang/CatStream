@@ -1,14 +1,14 @@
 import asyncio
-import simpleobsws
-from typing import Union
+import cv2
+import datetime
 import logging
+import numpy as np
+import re
+import simpleobsws
+import subprocess
 import time
 import torch
-import cv2
-import numpy as np
-import subprocess
-import re
-import datetime
+from typing import Union
 
 
 class Client:
@@ -75,8 +75,8 @@ class Client:
             product_name (str):
                 The name of the product to switch to.
         """
-        self.loop.run_until_complete(set_current_scene(
-            self.ws, scene_name, self.logger))
+        self.loop.run_until_complete(
+            set_current_scene(self.ws, scene_name, self.logger))
 
     def get_source_settings(self, source_name: str) -> dict:
         """Get settings of a source.
@@ -87,8 +87,8 @@ class Client:
         Returns:
             dict: The settings of the source.
         """
-        return self.loop.run_until_complete(get_source_settings(
-            self.ws, source_name, self.logger))
+        return self.loop.run_until_complete(
+            get_source_settings(self.ws, source_name, self.logger))
 
     def get_current_scene_name(self) -> str:
         """Get name of the current scene.
@@ -97,8 +97,8 @@ class Client:
             str:
                 The name of the current scene.
         """
-        return self.loop.run_until_complete(get_current_scene_name(
-            self.ws, self.logger))
+        return self.loop.run_until_complete(
+            get_current_scene_name(self.ws, self.logger))
 
 
 async def set_current_scene(
@@ -135,6 +135,7 @@ async def set_current_scene(
     await ws.disconnect()
     return
 
+
 async def get_current_scene_name(
         ws: simpleobsws.WebSocketClient,
         logger: Union[None, str, logging.Logger] = None) -> str:
@@ -167,6 +168,7 @@ async def get_current_scene_name(
         raise RuntimeError(ret.requestStatus.comment)
     await ws.disconnect()
     return scene_name
+
 
 async def get_source_settings(
     ws: simpleobsws.WebSocketClient,
@@ -206,10 +208,11 @@ async def get_source_settings(
     await ws.disconnect()
     return type_setting_dict
 
+
 def get_img_from_rtsp_cv2(rtsp_url: str) -> np.ndarray:
     cap = cv2.VideoCapture(rtsp_url)
     if not cap.isOpened():
-        print("无法打开视频流")
+        print('无法打开视频流')
         return None
     ret, frame = cap.read()
     if ret:
@@ -217,17 +220,22 @@ def get_img_from_rtsp_cv2(rtsp_url: str) -> np.ndarray:
     else:
         return None
 
+
 def get_img_from_rtsp_ffmpeg(rtsp_url: str) -> Union[np.ndarray, None]:
     # FFmpeg command to capture the latest frame from RTSP stream
     ffmpeg_cmd = [
-        "ffmpeg",
-        "-y",  # Overwrite output files without asking
-        "-i", rtsp_url,  # Input RTSP stream
-        "-an",  # Disable audio
-        "-vframes", "1",  # Capture only one frame
-        "-f", "rawvideo",  # Output format: raw video
-        "-pix_fmt", "bgr24",  # Pixel format: BGR 24-bit
-        "-"  # Output to PIPE
+        'ffmpeg',
+        '-y',  # Overwrite output files without asking
+        '-i',
+        rtsp_url,  # Input RTSP stream
+        '-an',  # Disable audio
+        '-vframes',
+        '1',  # Capture only one frame
+        '-f',
+        'rawvideo',  # Output format: raw video
+        '-pix_fmt',
+        'bgr24',  # Pixel format: BGR 24-bit
+        '-'  # Output to PIPE
     ]
     # Run FFmpeg command and capture the output
     process = subprocess.Popen(
@@ -235,13 +243,13 @@ def get_img_from_rtsp_ffmpeg(rtsp_url: str) -> Union[np.ndarray, None]:
     # read str from stderr
     out, err = process.communicate()
     err_str = err.decode('utf-8')
-    resolution_match = re.search(r", (\d+)x(\d+),", err_str)
+    resolution_match = re.search(r', (\d+)x(\d+),', err_str)
     if resolution_match:
         # 提取分辨率的宽度和高度
         width, height = resolution_match.groups()
         width, height = int(width), int(height)
     else:
-        raise ValueError("无法获取视频流分辨率")
+        raise ValueError('无法获取视频流分辨率')
     # Read the output from the PIPE
     raw_frame = out
     # Convert the raw frame data to a numpy array
@@ -254,10 +262,13 @@ def get_img_from_rtsp_ffmpeg(rtsp_url: str) -> Union[np.ndarray, None]:
         process.kill()
     return frame
 
+
 def detect_cat_face(image: np.ndarray) -> bool:
-    cat_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalcatface.xml')
+    cat_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +
+                                        'haarcascade_frontalcatface.xml')
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    cat_faces = cat_cascade.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    cat_faces = cat_cascade.detectMultiScale(
+        gray_image, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
     if len(cat_faces) > 0:
         return True
     else:
@@ -265,28 +276,27 @@ def detect_cat_face(image: np.ndarray) -> bool:
 
 
 def detect_cat_yolo(image: np.ndarray) -> bool:
-    cat_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalcatface.xml')
+    cat_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +
+                                        'haarcascade_frontalcatface.xml')
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    cat_faces = cat_cascade.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+    cat_faces = cat_cascade.detectMultiScale(
+        gray_image, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
     if len(cat_faces) > 0:
         return True
     else:
         return False
+
 
 def main():
     obs_host = '192.168.111.111'
     obs_ws_port = 4455
     obs_pwd = 'qqdIciF8FPNfzrqX'
     ws_url = f'ws://{obs_host}:{obs_ws_port}'
-    live_client = Client(
-        ws_url=ws_url, ws_pwd=obs_pwd)
-    scene_source_mapping = dict(
-        balcony='Mi8SE',
-        kitchen='Redmi4'
-    )
+    live_client = Client(ws_url=ws_url, ws_pwd=obs_pwd)
+    scene_source_mapping = dict(balcony='Mi8SE', kitchen='Redmi4')
     default_scene = 'balcony'
     check_interval = 10
-    model = torch.hub.load("ultralytics/yolov5", "yolov5s")
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
     while True:
         ret_img = dict()
         for scene_name, src_name in scene_source_mapping.items():
@@ -325,16 +335,12 @@ def main():
         last_scene = live_client.get_current_scene_name()
         if last_scene is None or next_scene != last_scene:
             live_client.set_current_scene(next_scene)
-            datetime_str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            datetime_str = datetime.datetime.now().strftime(
+                '%Y-%m-%d %H:%M:%S')
             print(f'{datetime_str} Switch to {next_scene}. {msg}')
             last_scene = next_scene
         time.sleep(check_interval)
 
+
 if __name__ == '__main__':
     main()
-
-    
-    
-    
-
-

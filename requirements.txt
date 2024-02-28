@@ -1,3 +1,4 @@
-simpleobsws
-opencv-python
 numpy
+opencv-python
+pre-commit
+simpleobsws

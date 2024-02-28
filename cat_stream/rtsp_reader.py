@@ -1,16 +1,17 @@
-from typing import Union
 import cv2
-import numpy as np
-import subprocess
-import re
 import logging
+import numpy as np
+import re
+import subprocess
+from typing import Union
+
 
 def read_img_from_rtsp_cv2(
-        rtsp_url: str,
-        logger: Union[None, str, logging.Logger] = None) -> Union[np.ndarray, None]:
-    """Read the latest frame from the RTSP stream using OpenCV.
-    Note that OpenCV cannot decode HEVC, and it may not always
-    decode H.264 correctly.
+    rtsp_url: str,
+    logger: Union[None, str,
+                  logging.Logger] = None) -> Union[np.ndarray, None]:
+    """Read the latest frame from the RTSP stream using OpenCV. Note that
+    OpenCV cannot decode HEVC, and it may not always decode H.264 correctly.
 
     Args:
         rtsp_url (str):
@@ -40,9 +41,11 @@ def read_img_from_rtsp_cv2(
     else:
         return None
 
+
 def read_img_from_rtsp_ffmpeg(
-        rtsp_url: str,
-        logger: Union[None, str, logging.Logger] = None) -> Union[np.ndarray, None]:
+    rtsp_url: str,
+    logger: Union[None, str,
+                  logging.Logger] = None) -> Union[np.ndarray, None]:
     """Read the latest frame from the RTSP stream using FFmpeg.
 
     Args:
@@ -51,7 +54,7 @@ def read_img_from_rtsp_ffmpeg(
         logger (Union[None, str, logging.Logger], optional):
             Logger for logging. If None, root logger will be selected.
             Defaults to None.
-    
+
     Returns:
         Union[np.ndarray, None]:
             The latest frame from the RTSP stream,
@@ -65,14 +68,18 @@ def read_img_from_rtsp_ffmpeg(
         logger = logging.getLogger(logger)
     # FFmpeg command to capture the latest frame from RTSP stream
     ffmpeg_cmd = [
-        "ffmpeg",
-        "-y",  # Overwrite output files without asking
-        "-i", rtsp_url,  # Input RTSP stream
-        "-an",  # Disable audio
-        "-vframes", "1",  # Capture only one frame
-        "-f", "rawvideo",  # Output format: raw video
-        "-pix_fmt", "bgr24",  # Pixel format: BGR 24-bit
-        "-"  # Output to PIPE
+        'ffmpeg',
+        '-y',  # Overwrite output files without asking
+        '-i',
+        rtsp_url,  # Input RTSP stream
+        '-an',  # Disable audio
+        '-vframes',
+        '1',  # Capture only one frame
+        '-f',
+        'rawvideo',  # Output format: raw video
+        '-pix_fmt',
+        'bgr24',  # Pixel format: BGR 24-bit
+        '-'  # Output to PIPE
     ]
     # Run FFmpeg command and capture the output
     process = subprocess.Popen(
@@ -80,7 +87,7 @@ def read_img_from_rtsp_ffmpeg(
     # read str from stderr
     out, err = process.communicate()
     err_str = err.decode('utf-8')
-    resolution_match = re.search(r", (\d+)x(\d+),", err_str)
+    resolution_match = re.search(r', (\d+)x(\d+),', err_str)
     if resolution_match:
         # Get the resolution of the video stream
         width, height = resolution_match.groups()

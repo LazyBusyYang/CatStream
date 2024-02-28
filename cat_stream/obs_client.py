@@ -68,8 +68,8 @@ class ObsClient:
             scene_name (str):
                 The name of the scene.
         """
-        self.loop.run_until_complete(set_current_scene(
-            self.ws, scene_name, self.logger))
+        self.loop.run_until_complete(
+            set_current_scene(self.ws, scene_name, self.logger))
 
     def get_source_settings(self, source_name: str) -> dict:
         """Get settings of a source.
@@ -80,8 +80,8 @@ class ObsClient:
         Returns:
             dict: The settings of the source.
         """
-        return self.loop.run_until_complete(get_source_settings(
-            self.ws, source_name, self.logger))
+        return self.loop.run_until_complete(
+            get_source_settings(self.ws, source_name, self.logger))
 
     def get_current_scene_name(self) -> str:
         """Get name of the current scene.
@@ -90,8 +90,8 @@ class ObsClient:
             str:
                 The name of the current scene.
         """
-        return self.loop.run_until_complete(get_current_scene_name(
-            self.ws, self.logger))
+        return self.loop.run_until_complete(
+            get_current_scene_name(self.ws, self.logger))
 
 
 async def set_current_scene(
@@ -128,9 +128,9 @@ async def set_current_scene(
     await ws.disconnect()
     return
 
-async def get_current_scene_name(
-        ws: simpleobsws.WebSocketClient,
-        logger: logging.Logger) -> str:
+
+async def get_current_scene_name(ws: simpleobsws.WebSocketClient,
+                                 logger: logging.Logger) -> str:
     """Get name of the current scene.
 
     Args:
@@ -160,6 +160,7 @@ async def get_current_scene_name(
         raise RuntimeError(ret.requestStatus.comment)
     await ws.disconnect()
     return scene_name
+
 
 async def get_source_settings(
     ws: simpleobsws.WebSocketClient,

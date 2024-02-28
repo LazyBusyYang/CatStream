@@ -1,24 +1,25 @@
-from .rtsp_reader import read_img_from_rtsp_cv2, read_img_from_rtsp_ffmpeg
+import logging
+import time
+from typing import Union
+
 from .detection import build_detection
 from .obs_client import ObsClient
-import logging
-from typing import Union
-import time
+from .rtsp_reader import read_img_from_rtsp_cv2, read_img_from_rtsp_ffmpeg
+
 
 class StreamHelper:
-    def __init__(
-            self,
-            obs_ws_url: str,
-            obs_ws_pwd: str,
-            cat_det_cfg: dict,
-            rtsp_reader_backend: str,
-            obs_scenes: dict,
-            detect_interval: int = 10,
-            missing_tolerance: int = 3,
-            logger: Union[None, str, logging.Logger] = None
-    ) -> None:
-        """A helper class for controlling the live scene in OBS
-        according to the cat detection result from the RTSP stream.
+
+    def __init__(self,
+                 obs_ws_url: str,
+                 obs_ws_pwd: str,
+                 cat_det_cfg: dict,
+                 rtsp_reader_backend: str,
+                 obs_scenes: dict,
+                 detect_interval: int = 10,
+                 missing_tolerance: int = 3,
+                 logger: Union[None, str, logging.Logger] = None) -> None:
+        """A helper class for controlling the live scene in OBS according to
+        the cat detection result from the RTSP stream.
 
         Args:
             obs_ws_url (str):
@@ -37,7 +38,8 @@ class StreamHelper:
             missing_tolerance (int, optional):
                 The tolerance of missing cat detections. Defaults to 3.
             logger (Union[None, str, logging.Logger], optional):
-                Logger for logging. If None, a logger named __name__ will be selected.
+                Logger for logging. If None, a logger
+                named __name__ will be selected.
                 Defaults to None.
         """
         # init logger
@@ -49,10 +51,7 @@ class StreamHelper:
             self.logger = logger
         # init obs ws client
         self.obs_client = ObsClient(
-            ws_url=obs_ws_url,
-            ws_pwd=obs_ws_pwd,
-            logger=self.logger
-        )
+            ws_url=obs_ws_url, ws_pwd=obs_ws_pwd, logger=self.logger)
         if not self.obs_client.server_valid:
             raise ConnectionError('Failed to connect to the OBS server.')
         # init detection model
@@ -63,8 +62,9 @@ class StreamHelper:
         elif rtsp_reader_backend == 'ffmpeg':
             self.read_img_from_rtsp = read_img_from_rtsp_ffmpeg
         else:
-            raise ValueError(
-                f'Invalid rtsp_reader_backend, expected "cv2" or "ffmpeg", got {rtsp_reader_backend}.')
+            raise ValueError('Invalid rtsp_reader_backend, ' +
+                             'expected "cv2" or "ffmpeg", ' +
+                             f'got {rtsp_reader_backend}.')
         # init simple attr
         self.detect_interval = detect_interval
         self.missing_tolerance = missing_tolerance
@@ -84,7 +84,6 @@ class StreamHelper:
         self.current_scene_name = self.obs_client.get_current_scene_name()
         self.missing_count = 0
 
-
     def start(self) -> None:
         while True:
             lasted_frames = dict()
@@ -92,7 +91,8 @@ class StreamHelper:
                 src_name = scene_dict['media_source']
                 src_settings = self.obs_client.get_source_settings(src_name)
                 rtsp_url = src_settings['inputSettings']['input']
-                img = self.read_img_from_rtsp(rtsp_url=rtsp_url, logger=self.logger)
+                img = self.read_img_from_rtsp(
+                    rtsp_url=rtsp_url, logger=self.logger)
                 if img is not None:
                     lasted_frames[scene_name] = img
             cat_seen_scenes = list()
@@ -103,7 +103,8 @@ class StreamHelper:
             if len(cat_seen_scenes) <= 0:
                 self.missing_count += 1
                 if self.missing_count >= self.missing_tolerance:
-                    msg = f'Cat missing for {self.missing_count} times, switch to default scene {self.default_scene_name}.'
+                    msg = f'Cat missing for {self.missing_count} times, ' +\
+                        f'switch to default scene {self.default_scene_name}.'
                     self.logger.info(msg)
                     self.obs_client.set_current_scene(self.default_scene_name)
                     self.current_scene_name = self.default_scene_name
@@ -112,12 +113,9 @@ class StreamHelper:
                 self.missing_count = 0
                 tgt_scene_name = cat_seen_scenes[0]
                 if self.current_scene_name != tgt_scene_name:
-                    msg = f'Cat detected in {cat_seen_scenes}, switch to scene {tgt_scene_name}.'
+                    msg = f'Cat detected in {cat_seen_scenes}, ' +\
+                        f'switch to scene {tgt_scene_name}.'
                     self.logger.info(msg)
                     self.obs_client.set_current_scene(tgt_scene_name)
                     self.current_scene_name = tgt_scene_name
             time.sleep(self.detect_interval)
-
-                
-
-

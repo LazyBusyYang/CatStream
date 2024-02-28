@@ -1,7 +1,9 @@
 import argparse
+import logging
+
 from cat_stream.config_reader import file2dict
 from cat_stream.stream_helper import StreamHelper
-import logging
+
 
 def main(args):
     # init logger
@@ -20,6 +22,7 @@ def main(args):
     # start the main loop
     stream_helper.start()
 
+
 def setup_parser():
     parser = argparse.ArgumentParser('Start the cat stream helper.')
     # server args
@@ -29,11 +32,9 @@ def setup_parser():
         type=str,
         default='configs/yolov5_ffmpeg.py')
     parser.add_argument(
-        '--obs_ws_pwd',
-        help='Password of the OBS websocket.',
-        required=False
-    )
+        '--obs_ws_pwd', help='Password of the OBS websocket.', required=False)
     return parser.parse_args()
+
 
 if __name__ == '__main__':
     args = setup_parser()
