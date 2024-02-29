@@ -2,3 +2,6 @@ numpy
 opencv-python
 pre-commit
 simpleobsws
+torch
+torchaudio
+torchvision

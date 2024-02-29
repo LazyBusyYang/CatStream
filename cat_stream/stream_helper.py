@@ -95,6 +95,10 @@ class StreamHelper:
                     rtsp_url=rtsp_url, logger=self.logger)
                 if img is not None:
                     lasted_frames[scene_name] = img
+                else:
+                    msg = f'Failed to read frame from {scene_name}, ' +\
+                        f'src_name: {src_name}, rtsp_url: {rtsp_url}.'
+                    self.logger.warning(msg)
             cat_seen_scenes = list()
             for scene_name, frame in lasted_frames.items():
                 detect_result = self.detection.detect(frame)
