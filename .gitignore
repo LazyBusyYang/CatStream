@@ -1,0 +1,4 @@
+build
+yolov5s.pt
+*.egg-info*
+__pycache__
