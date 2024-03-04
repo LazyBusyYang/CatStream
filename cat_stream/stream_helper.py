@@ -82,7 +82,7 @@ class StreamHelper:
             self.default_scene_name = first_scene_name
         # init state attr
         self.current_scene_name = self.obs_client.get_current_scene_name()
-        self.missing_count = 0
+        self.missing_count = 2
 
     def start(self) -> None:
         """Start the main loop of the stream helper."""
@@ -108,12 +108,17 @@ class StreamHelper:
             if len(cat_seen_scenes) <= 0:
                 self.missing_count += 1
                 if self.missing_count >= self.missing_tolerance:
-                    msg = f'Cat missing for {self.missing_count} times, ' +\
-                        f'switch to default scene {self.default_scene_name}.'
-                    self.logger.info(msg)
-                    self.obs_client.set_current_scene(self.default_scene_name)
-                    self.current_scene_name = self.default_scene_name
+                    tgt_scene_name = self.default_scene_name
+                    missing_count_tmp = self.missing_count
                     self.missing_count = 0
+                    if self.current_scene_name != tgt_scene_name:
+                        msg = f'Cat missing for {missing_count_tmp} times, ' +\
+                            'switch to default scene ' +\
+                            f'{self.default_scene_name}.'
+                        self.logger.info(msg)
+                        self.obs_client.set_current_scene(
+                            self.default_scene_name)
+                        self.current_scene_name = self.default_scene_name
             else:
                 self.missing_count = 0
                 tgt_scene_name = cat_seen_scenes[0]

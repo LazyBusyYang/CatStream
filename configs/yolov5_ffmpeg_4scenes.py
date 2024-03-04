@@ -4,8 +4,9 @@ obs_ws_pwd = 'qqdIciF8FPNfzrqX'
 cat_det_cfg = dict(type='YOLOv5CatDetection', device='cpu')
 rtsp_reader_backend = 'ffmpeg'
 obs_scenes = dict(
-    balcony=dict(default=True, media_source='Mi8SE'),
-    kitchen=dict(media_source='Redmi4'),
-    entry=dict(media_source='IPad Air 3'))
+    balcony=dict(default=True, media_source='MeizuX'),
+    kitchen_lo=dict(media_source='Mi8SE'),
+    kitchen_hi=dict(media_source='Redmi4'),
+    entry=dict(media_source='Nokia6'))
 detect_interval = 10
 missing_tolerance = 3

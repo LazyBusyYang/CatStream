@@ -100,7 +100,12 @@ def read_img_from_rtsp_ffmpeg(
     raw_frame = out
     # Convert the raw frame data to a numpy array
     frame_array = np.frombuffer(raw_frame, dtype=np.uint8)
-    frame = frame_array.reshape((height, width, 3))
+    try:
+        frame = frame_array.reshape((height, width, 3))
+    except ValueError:
+        msg = 'Failed to reshape the frame data to an image.'
+        logger.error(msg)
+        return None
     # Check if the FFmpeg process has finished
     if process.poll() is not None:
         pass
