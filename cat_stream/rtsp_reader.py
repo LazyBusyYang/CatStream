@@ -85,7 +85,13 @@ def read_img_from_rtsp_ffmpeg(
     process = subprocess.Popen(
         ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # read str from stderr
-    out, err = process.communicate()
+    try:
+        out, err = process.communicate(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        msg = 'Timeout when reading the frame from the RTSP stream.'
+        logger.error(msg)
+        return None
     err_str = err.decode('utf-8')
     resolution_match = re.search(r', (\d+)x(\d+),', err_str)
     if resolution_match:
@@ -100,7 +106,12 @@ def read_img_from_rtsp_ffmpeg(
     raw_frame = out
     # Convert the raw frame data to a numpy array
     frame_array = np.frombuffer(raw_frame, dtype=np.uint8)
-    frame = frame_array.reshape((height, width, 3))
+    try:
+        frame = frame_array.reshape((height, width, 3))
+    except ValueError:
+        msg = 'Failed to reshape the frame data to an image.'
+        logger.error(msg)
+        return None
     # Check if the FFmpeg process has finished
     if process.poll() is not None:
         pass
