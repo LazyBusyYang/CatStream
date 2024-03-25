@@ -30,7 +30,7 @@ def setup_parser():
         '--config_path',
         help='Path to the configuration file.',
         type=str,
-        default='configs/yolov5_ffmpeg_3scenes.py')
+        default='configs/default_config.py')
     parser.add_argument(
         '--obs_ws_pwd', help='Password of the OBS websocket.', required=False)
     return parser.parse_args()
