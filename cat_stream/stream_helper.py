@@ -86,6 +86,7 @@ class StreamHelper:
 
     def start(self) -> None:
         """Start the main loop of the stream helper."""
+        self.logger.info('Start the main loop of the stream helper.')
         while True:
             lasted_frames = dict()
             for scene_name, scene_dict in self.obs_scenes.items():
