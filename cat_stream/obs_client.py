@@ -93,6 +93,18 @@ class ObsClient:
         return self.loop.run_until_complete(
             get_current_scene_name(self.ws, self.logger))
 
+    def set_source_text(self, source_name: str, text: str) -> None:
+        """Set text for a source.
+
+        Args:
+            source_name (str):
+                The name of the source.
+            text (str):
+                The text to be set.
+        """
+        self.loop.run_until_complete(
+            set_source_text(self.ws, source_name, text, self.logger))
+
 
 async def set_current_scene(
     ws: simpleobsws.WebSocketClient,
@@ -199,3 +211,41 @@ async def get_source_settings(
         raise RuntimeError(ret.requestStatus.comment)
     await ws.disconnect()
     return type_setting_dict
+
+
+async def set_source_text(
+    ws: simpleobsws.WebSocketClient,
+    source_name: str,
+    text: str,
+    logger: logging.Logger,
+) -> None:
+    """Set the current scene by scene name.
+
+    Args:
+        ws (simpleobsws.WebSocketClient):
+            The websocket client.
+        source_name (str):
+            The name of the source.
+        input_settings (dict):
+            The settings of the source.
+        logger (Union[None, str, logging.Logger], optional):
+            Logger for logging. If None, root logger will be selected.
+            Defaults to None.
+    Raises:
+        RuntimeError:
+            If the request failed.
+    """
+    # connect and authenticate
+    await ws.connect()
+    await ws.wait_until_identified()
+    request = simpleobsws.Request(
+        requestType='SetInputSettings',
+        requestData=dict(inputName=source_name, inputSettings=dict(text=text)))
+    ret = await ws.call(request)
+    if not ret.ok():
+        logger.error('Failed to set text for source.\n' +
+                     f'Error code: {ret.requestStatus.code}\n' +
+                     f'Error message: {ret.requestStatus.comment}')
+        raise RuntimeError(ret.requestStatus.comment)
+    await ws.disconnect()
+    return
