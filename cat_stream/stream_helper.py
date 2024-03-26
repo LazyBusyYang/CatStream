@@ -91,6 +91,7 @@ class StreamHelper:
                 raise TypeError('Invalid type of comment reader, ' +
                                 'expected BiliInteractReader, ' +
                                 f'got {class_name}.')
+            interact_reader_cfg['logger'] = self.logger
             self.interact_reader = BiliInteractReader(**interact_reader_cfg)
         else:
             self.interact_reader = None
@@ -119,7 +120,7 @@ class StreamHelper:
     def start(self) -> None:
         """Start the main loop of the stream helper."""
         self.logger.info('Start the main loop of the stream helper.')
-        self.state = State.IDLE
+        self._transit_to_idle()
         while True:
             loop_start_time = time.time()
             cat_seen_scenes = list()
@@ -225,18 +226,19 @@ class StreamHelper:
         vote_by_scene = dict()
         max_vote_number = -1
         max_vote_scene_name = None
-        for scene_name, vote_key in self.obs_scenes.items():
+        for scene_name, scene_value in self.obs_scenes.items():
+            vote_key = scene_value['vote_key']
             n_votes = vote_results[vote_key] \
                 if vote_key in vote_results else 0
-            vote_by_scene[scene_name] = n_votes
+            vote_by_scene[vote_key] = n_votes
             if n_votes > max_vote_number:
                 max_vote_number = n_votes
                 max_vote_scene_name = scene_name
         if max_vote_number == 0:
             max_vote_scene_name = None
         lable_text = ''
-        for scene_name, n_votes in vote_by_scene.items():
-            lable_text += f'{scene_name} 票数: {n_votes}\n'
+        for vote_key, n_votes in vote_by_scene.items():
+            lable_text += f'{vote_key} 票数: {n_votes}\n'
         return lable_text, max_vote_scene_name
 
     def _set_state_label(self, scene_name: str, detailed_text: str) -> None:

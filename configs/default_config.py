@@ -19,10 +19,10 @@ obs_scenes = dict(
         media_source='Nokia6', vote_key='c', state_label_source='state_label'))
 interact_reader_cfg = dict(
     type='BiliInteractReader',
-    id_code='id_code',
-    app_id='app_id',
-    key='access_key',
-    secret='secret_key',
+    id_code='DE05WFEOKJK07',
+    app_id=1712207820649,
+    key='C30iYiXWexZWYMIDLN9SAPfy',
+    secret='gXdR89EkRmJ6BOH2FLRoIpl7NiXldJ',
     host='https://live-open.biliapi.com',
     super_users=['4378037'],
     verbose=True,

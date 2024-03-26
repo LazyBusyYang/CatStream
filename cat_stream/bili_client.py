@@ -42,7 +42,9 @@ class BiliClient:
             self.logger = logger
 
     def run(self):
-        loop = asyncio.get_event_loop()
+        # loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         websocket = loop.run_until_complete(self.connect())
         tasks = [
             asyncio.ensure_future(self.recv_loop(websocket)),
