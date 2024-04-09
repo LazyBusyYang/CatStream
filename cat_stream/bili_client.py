@@ -10,6 +10,7 @@ import time
 import websockets
 from hashlib import sha256
 from queue import Full, Queue
+from threading import Event
 from typing import Union
 
 
@@ -22,6 +23,7 @@ class BiliClient:
                  secret: str,
                  host: str,
                  interact_queue: Union[None, Queue] = None,
+                 exit_signal: Union[None, Event] = None,
                  queue_put_timeout: int = 10,
                  verbose: bool = False,
                  logger: Union[None, str, logging.Logger] = None):
@@ -33,6 +35,7 @@ class BiliClient:
         self.game_id = ''
         self.interact_queue = interact_queue
         self.queue_put_timeout = queue_put_timeout
+        self.exit_signal = exit_signal
         self.verbose = verbose
         if logger is None:
             self.logger = logging.getLogger(__name__)
@@ -46,12 +49,15 @@ class BiliClient:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         websocket = loop.run_until_complete(self.connect())
-        tasks = [
-            asyncio.ensure_future(self.recv_loop(websocket)),
-            asyncio.ensure_future(self.send_heartbeat(websocket)),
-            asyncio.ensure_future(self.app_send_heartbeat()),
-        ]
-        loop.run_until_complete(asyncio.gather(*tasks))
+        try:
+            tasks = [
+                asyncio.ensure_future(self.recv_loop(websocket)),
+                asyncio.ensure_future(self.send_heartbeat(websocket)),
+                asyncio.ensure_future(self.app_send_heartbeat())
+            ]
+            loop.run_until_complete(asyncio.gather(*tasks))
+        finally:
+            self.exit()
 
     def sign(self, params):
         """Sign the http request."""
@@ -92,7 +98,7 @@ class BiliClient:
         params = '{"code":"%s","app_id":%d}' % (self.id_code, self.app_id)
         headerMap = self.sign(params)
         retry_count = 0
-        retry_max = 5
+        retry_max = 10
         retry_interval = 1
         _game_id = None
         while retry_count < retry_max:
@@ -105,12 +111,18 @@ class BiliClient:
                 _game_id = _game_info['game_id']
                 break
             except TypeError:
+                self.logger.warning(
+                    '[BiliClient] get_websocket_info failed for ' +
+                    f'{retry_count} retries.\n' + f'params={params}\n' +
+                    f'data={data["data"]}')
                 retry_count += 1
+                retry_interval *= 2
                 time.sleep(retry_interval)
                 continue
         if _game_id is None:
-            raise ValueError(
-                f'Failed to get game_id within {retry_count} retries.')
+            self.interact_queue.put('Error')
+            raise ValueError('[BiliClient] Failed to get game_id ' +
+                             f'within {retry_count} retries.')
         self.game_id = str(_game_id)
         self.logger.info('[BiliClient] get_websocket_info success. ' +
                          f'data={data}')
@@ -122,6 +134,8 @@ class BiliClient:
     async def app_send_heartbeat(self):
         while True:
             await asyncio.ensure_future(asyncio.sleep(20))
+            if self.exit_signal.is_set():
+                break
             postUrl = '%s/v2/app/heartbeat' % self.host
             params = '{"game_id":"%s"}' % (self.game_id)
             headerMap = self.sign(params)
@@ -149,51 +163,72 @@ class BiliClient:
             self.logger.info('[BiliClient] Auth failed.')
         else:
             self.logger.info('[BiliClient] Auth success.')
+            self.interact_queue.put(item='Ready')
 
     # 发送心跳
     async def send_heartbeat(self, websocket):
         while True:
             await asyncio.ensure_future(asyncio.sleep(20))
+            if self.exit_signal.is_set():
+                break
             req = _BliveProto()
             req.op = 2
             await websocket.send(req.pack())
             self.logger.debug('[BiliClient] send_heartbeat success')
 
+    def _run_one_loop(self, recv_buffer) -> None:
+        resp = _BliveProto()
+        resp.unpack(recv_buffer)
+        op_type = resp.get_operation_type()
+        if op_type == 'OP_SEND_SMS_REPLY':
+            body_str = resp.body
+            body_dict = json.loads(body_str)
+            if 'cmd' in body_dict and \
+                    body_dict['cmd'] == 'LIVE_OPEN_PLATFORM_DM':
+                uid = body_dict['data']['uid']
+                uname = body_dict['data']['uname']
+                msg = body_dict['data']['msg']
+                medal_level = int(body_dict['data']['fans_medal_level'])
+                medal_name = body_dict['data']['fans_medal_name']
+                # put danmu into queue
+                clean_data = dict(
+                    uid=uid,
+                    uname=uname,
+                    msg=msg,
+                    medal_level=medal_level,
+                    medal_name=medal_name)
+                if self.verbose:
+                    self.logger.info(
+                        f'[BiliClient] danmu message={clean_data}')
+                if self.interact_queue is not None:
+                    try:
+                        self.interact_queue.put(
+                            clean_data, timeout=self.queue_put_timeout)
+                    except Full:
+                        self.logger.error(
+                            '[BiliClient] interact_queue is full, ' +
+                            f' drop danmu message={clean_data}.')
+            else:
+                # Not a danmu message
+                # TODOL record gifts
+                pass
+        else:
+            # Not a reply message
+            pass
+
     # 读取信息
     async def recv_loop(self, websocket):
         self.logger.debug('[BiliClient] recv_loop start')
         while True:
-            recvBuf = await websocket.recv()
-            resp = _BliveProto()
-            resp.unpack(recvBuf)
-            op_type = resp.get_operation_type()
-            if op_type == 'OP_SEND_SMS_REPLY':
-                body_str = resp.body
-                body_dict = json.loads(body_str)
-                if 'cmd' in body_dict and \
-                        body_dict['cmd'] == 'LIVE_OPEN_PLATFORM_DM':
-                    uid = body_dict['data']['uid']
-                    uname = body_dict['data']['uname']
-                    msg = body_dict['data']['msg']
-                    # put danmu into queue
-                    clean_data = dict(uid=uid, uname=uname, msg=msg)
-                    if self.verbose:
-                        self.logger.info(clean_data)
-                    if self.interact_queue is not None:
-                        try:
-                            self.interact_queue.put(
-                                clean_data, timeout=self.queue_put_timeout)
-                        except Full:
-                            self.logger.error(
-                                '[BiliClient] interact_queue is full, ' +
-                                f' drop danmu message={clean_data}.')
-                else:
-                    # Not a danmu message
-                    # TODOL record gifts
-                    pass
-            else:
-                # Not a reply message
-                pass
+            if self.exit_signal.is_set():
+                break
+            try:
+                recv_buffer = await websocket.recv()
+                self._run_one_loop(recv_buffer)
+            except Exception as e:
+                self.logger.error(
+                    f'[BiliClient] recv_loop error, exception={e}')
+                break
 
     # 建立连接
     async def connect(self):
@@ -205,10 +240,7 @@ class BiliClient:
         await self.auth(websocket, authBody)
         return websocket
 
-    def __enter__(self):
-        pass
-
-    def __exit__(self, type, value, trace):
+    def exit(self):
         # 关闭应用
         postUrl = '%s/v2/app/end' % self.host
         params = '{"game_id":"%s","app_id":%d}' % (self.game_id, self.app_id)

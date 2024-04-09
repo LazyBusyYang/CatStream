@@ -6,10 +6,9 @@ import subprocess
 from typing import Union
 
 
-def read_img_from_rtsp_cv2(
-    rtsp_url: str,
-    logger: Union[None, str,
-                  logging.Logger] = None) -> Union[np.ndarray, None]:
+def read_img_from_rtsp_cv2(rtsp_url: str,
+                           logger: Union[None, str, logging.Logger] = None,
+                           **kwargs) -> Union[np.ndarray, None]:
     """Read the latest frame from the RTSP stream using OpenCV. Note that
     OpenCV cannot decode HEVC, and it may not always decode H.264 correctly.
 
@@ -33,7 +32,7 @@ def read_img_from_rtsp_cv2(
         logger = logging.getLogger(logger)
     cap = cv2.VideoCapture(rtsp_url)
     if not cap.isOpened():
-        logger.error('Failed to open the RTSP stream.')
+        logger.error('[RTSP Reader] Failed to open the RTSP stream.')
         return None
     ret, frame = cap.read()
     if ret:
@@ -44,6 +43,7 @@ def read_img_from_rtsp_cv2(
 
 def read_img_from_rtsp_ffmpeg(
     rtsp_url: str,
+    timeout: int = 5,
     logger: Union[None, str,
                   logging.Logger] = None) -> Union[np.ndarray, None]:
     """Read the latest frame from the RTSP stream using FFmpeg.
@@ -51,6 +51,9 @@ def read_img_from_rtsp_ffmpeg(
     Args:
         rtsp_url (str):
             The url of the RTSP stream.
+        timeout (int, optional):
+            Timeout for reading the frame from the RTSP stream.
+            Defaults to 5.
         logger (Union[None, str, logging.Logger], optional):
             Logger for logging. If None, root logger will be selected.
             Defaults to None.
@@ -86,10 +89,11 @@ def read_img_from_rtsp_ffmpeg(
         ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # read str from stderr
     try:
-        out, err = process.communicate(timeout=10)
+        out, err = process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         process.kill()
-        msg = 'Timeout when reading the frame from the RTSP stream.'
+        msg = '[RTSP Reader] Timeout when reading the frame ' +\
+            'from the RTSP stream.'
         logger.error(msg)
         return None
     err_str = err.decode('utf-8')
@@ -99,7 +103,7 @@ def read_img_from_rtsp_ffmpeg(
         width, height = resolution_match.groups()
         width, height = int(width), int(height)
     else:
-        msg = 'Failed to get the resolution of the video stream.'
+        msg = '[RTSP Reader] Failed to get the resolution of the video stream.'
         logger.error(msg)
         return None
     # Read the output from stdout
@@ -109,7 +113,7 @@ def read_img_from_rtsp_ffmpeg(
     try:
         frame = frame_array.reshape((height, width, 3))
     except ValueError:
-        msg = 'Failed to reshape the frame data to an image.'
+        msg = '[RTSP Reader] Failed to reshape the frame data to an image.'
         logger.error(msg)
         return None
     # Check if the FFmpeg process has finished
