@@ -84,10 +84,13 @@ class BiliInteractReader:
             raise ValueError(msg)
 
     def reset(self) -> None:
+        """Reset the vote cache."""
         self.votes = dict()
         self.voted_users = set()
 
     def _load_new_msg(self) -> None:
+        """Load new messages from the interact queue and update the vote
+        cache."""
         n_data = self.interact_queue.qsize()
         for _ in range(n_data):
             inter_data = self.interact_queue.get()
@@ -113,13 +116,16 @@ class BiliInteractReader:
                 self.votes[clean_msg] += n_votes
 
     def get_vote_results(self) -> dict:
+        """Get the vote results.
+
+        Returns:
+            dict: The vote results.
+        """
         self._load_new_msg()
         return self.votes
 
-    def get_lock_queue(self) -> dict:
-        raise NotImplementedError
-
     def stop_thread(self) -> None:
+        """Stop the client thread."""
         self.exit_signal.set()
         if self.verbose:
             self.logger.info('[BiliInteractReader] Stop signal is sent to ' +

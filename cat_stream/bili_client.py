@@ -254,8 +254,9 @@ class BiliClient:
 
 
 class _BliveProto:
+    """Protocol for bilibili live streaming."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.packetLen = 0
         self.headerLen = 16
         self.ver = 0
@@ -264,7 +265,8 @@ class _BliveProto:
         self.body = ''
         self.maxBody = 2048
 
-    def pack(self):
+    def pack(self):  # -> bytes | Any:
+        """Pack the message into bytes."""
         self.packetLen = len(self.body) + self.headerLen
         buf = struct.pack('>i', self.packetLen)
         buf += struct.pack('>h', self.headerLen)
@@ -274,7 +276,8 @@ class _BliveProto:
         buf += self.body.encode()
         return buf
 
-    def unpack(self, buf):
+    def unpack(self, buf) -> None:
+        """Unpack the message from bytes."""
         if len(buf) < self.headerLen:
             print('包头不够')
             return
@@ -300,6 +303,7 @@ class _BliveProto:
             return
 
     def get_operation_type(self) -> str:
+        """Get the operation type."""
         if self.op == 2:
             return 'OP_HEARTBEAT'
         elif self.op == 3:

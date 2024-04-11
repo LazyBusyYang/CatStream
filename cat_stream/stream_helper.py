@@ -114,6 +114,7 @@ class StreamHelper:
         self._set_state_label(scene_name=current_scene_name, detailed_text='')
 
     def _trigger_detection(self) -> None:
+        """Trigger the detection processor to process the RTSP streams."""
         rtsp_dict = dict()
         for scene_name, scene_dict in self.obs_scenes.items():
             src_name = scene_dict['media_source']
@@ -123,7 +124,15 @@ class StreamHelper:
             rtsp_dict[scene_name] = (rtsp_url, rtsp_rotation)
         self.detection_processor.put_mview_urls(rtsp_dict)
 
-    def _collect_detection_vote_results(self) -> dict:
+    def _collect_detection_vote_results(self) -> Union[dict, None]:
+        """Collect the detection results from the detection processor.
+
+        Returns:
+            Union[dict, None]:
+                A dictionary of vote results, where the key is the vote key
+                and the value is the vote number. If no cat is detected, return
+                None.
+        """
         detect_results = self.detection_processor.get_mview_results()
         # check if the cat is seen
         if detect_results is not None:
@@ -143,7 +152,8 @@ class StreamHelper:
         else:
             return None
 
-    def _run_one_loop(self):
+    def _run_one_loop(self) -> None:
+        """Run one loop of the main loop."""
         loop_start_time = time.time()
         vote_time_left = None
         if self.detection_processor is not None:
@@ -221,6 +231,7 @@ class StreamHelper:
                 break
 
     def _transit_to_idle(self) -> None:
+        """Transit the state to IDLE."""
         msg = f'[State] {self.state} to IDLE'
         if self.interact_reader is not None:
             self.interact_reader.reset()
@@ -230,6 +241,7 @@ class StreamHelper:
         self._set_state_label()
 
     def _transit_to_exit(self) -> None:
+        """Transit the state to EXIT."""
         msg = f'[State] {self.state} to EXIT'
         self.state = State.EXIT
         self.logger.info(msg)
@@ -237,6 +249,20 @@ class StreamHelper:
 
     def _convert_vote_results(self,
                               msrc_vote_results: dict) -> Tuple[str, str]:
+        """Convert the vote results from multi-sources into a pretty table.
+
+        Args:
+            msrc_vote_results (dict):
+                A dictionary of vote results from multi-sources, where the key
+                is the source name and the value is a dictionary of vote
+                results from different vote keys.
+
+        Returns:
+            Tuple[str, str]:
+                A tuple of two strings, where the first string is the pretty
+                table of the vote results, and the second string is the scene
+                name with the maximum vote number.
+        """
         table = prettytable.PrettyTable()
         max_vote_number = 0
         max_vote_scene_name = None
@@ -276,6 +302,15 @@ class StreamHelper:
     def _set_state_label(self,
                          scene_name: Union[str, None] = None,
                          detailed_text: Union[str, None] = None) -> None:
+        """Set the state label in the OBS scene.
+
+        Args:
+            scene_name (Union[str, None], optional):
+                The scene name in OBS. If None, use the current scene.
+                Defaults to None.
+            detailed_text (Union[str, None], optional):
+                The detailed text to show in the state label. Defaults to None.
+        """
         scene_name = scene_name if scene_name is not None \
             else self.obs_client.get_current_scene_name()
         detailed_text = detailed_text if detailed_text is not None else ''
