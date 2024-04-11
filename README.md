@@ -2,13 +2,22 @@
 
 ## Introduction
 
-This project is a multi-perspective cat live streaming program implemented based on Python and OBS Studio. It can select the camera view according to the detection results of cats from multiple RTSP network cameras in the home, control OBS to activate scenes with cats, and complete unattended cat live streaming on the network.
+This project is a multi-perspective cat live streaming program implemented based on Python and OBS Studio. It can select the camera view according to the vote results. Every loop the main program controls OBS to activate a scene
+with most votes.
+
+![Screenshot](./resources/screenshot.jpg)
+
+Please set up your cameras for spots where cats often stay.
 
 ![Rooms, cameras and cat](./resources/room_illustration.jpg)
 
-The main program initializes upon startup according to the configuration file, connects to the OBS websocket server, and enters a while loop. Within each iteration of the loop, it requests the latest RTSP URLs for each perspective from OBS. It then uses ffmpeg or cv2 to read the latest video frames from RTSP. Utilizing YOLOv5 or cv2, it detects whether a cat is present in the video frames. Based on the detection results, it sends scene-switching signals to OBS. The flowchart is shown in the figure below.
+The main program initializes upon startup according to the configuration file, connects to the OBS websocket server, and enters a while loop. Within each iteration of the loop, it collects votes.
+There are 2 sources of votes, one is image detector, the other is user's danmu from bilibili live platform.
+- **interact_reader**: `BiliInteractReader` is a class reading interactive danmu messages from a sub-thread, converting them into number of vote. Vote weight bonus for super user and followers level is also considered here.
+- **detection_proc**: `DetectionProcessor` is a class submitting valid rtsp urls to a sub-thread, fetching detection
+results on rtsp newest frame. `RTSPDetectionThread` uses ffmpeg or cv2 to read the latest video frames from RTSP. Utilizing YOLOv5 or cv2, it detects whether a cat is present in the video frames.
 
-![Mainloop flow chart](./resources/mainloop_flow.png)
+![Sequence Diagram for loops](./resources/mainloop_seq.png)
 
 ## Prerequisites
 
@@ -32,7 +41,7 @@ Please write the configuration file needed for live streaming control based on t
 
 When the configuration file is ready, start program with a command like below:
 ```bash
-python tools/main.py --config_path configs/yolov5_ffmpeg_3scenes.py
+python tools/main.py --config_path configs/default_config.py
 ```
 
 

@@ -1,4 +1,6 @@
 build
 yolov5s.pt
+bilibili_ref
 *.egg-info*
 __pycache__
+local_files

@@ -34,16 +34,7 @@ obs_scenes = dict(
     entry_hi=dict(
         media_source='Mi8SE', vote_key='f', state_label_source='state_label'),
 )
-interact_reader_cfg = dict(
-    type='BiliInteractReader',
-    id_code='ID_CODE',
-    app_id=1712207820649,
-    key='ACCESS_KEY',
-    secret='SECRET_KEY',
-    host='https://live-open.biliapi.com',
-    super_users=['4378037', '397678437'],
-    verbose=True,
-    interact_queue_len=100)
+interact_reader_cfg = None
 detect_interval = 10
 mainloop_interval = 5
 vote_interval = 30

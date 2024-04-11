@@ -1,19 +1,7 @@
 type = 'StreamHelper'
 obs_ws_url = 'ws://OBS_HOST:4455'
 obs_ws_pwd = 'OBS_PWD'
-detection_proc_cfg = dict(
-    type='DetectionProcessor',
-    verbose=False,
-    input_queue_len=1,
-    output_queue_len=1,
-    detect_thread_cfg=dict(
-        type='RTSPDetectionThread',
-        rtsp_reader_backend='ffmpeg',
-        rtsp_timeout=5,
-        interval=1,
-        verbose=False,
-        cat_det_cfg=dict(type='YOLOv5CatDetection', device='cpu'),
-    ))
+detection_proc_cfg = None
 obs_scenes = dict(
     balcony_lo=dict(
         media_source='Mate9',

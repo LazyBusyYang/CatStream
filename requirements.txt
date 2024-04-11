@@ -1,6 +1,7 @@
 numpy
 opencv-python
 pre-commit
+requests
 simpleobsws
 torch
 torchaudio
